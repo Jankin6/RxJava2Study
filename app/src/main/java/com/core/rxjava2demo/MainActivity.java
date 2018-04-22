@@ -21,7 +21,9 @@ import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Action;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
@@ -31,30 +33,148 @@ public class MainActivity extends AppCompatActivity {
     public static final String TAG = "RxJavaFirst";
     Subscription subscription;
 
+    CompositeDisposable mCompositeDisposable;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        test1();
+        mCompositeDisposable = new CompositeDisposable();
+//        test1();
+//        test2();
+//        test3();
+//        test4();
+//        test5();
+//        test6();
+//        test7();
+//        test8();
+        test9();
     }
 
 
     private void test1() {
+        // 创建一个上游observable
         Observable<Integer> observable = Observable.create(new ObservableOnSubscribe<Integer>() {
             @Override
             public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
                 Log.d(TAG, "observable thread is : " + Thread.currentThread().getName());
+                Log.d(TAG, "emit 1");
                 emitter.onNext(1);
+
+                Log.d(TAG, "emit 2");
                 emitter.onNext(2);
+
+                Log.d(TAG, "emit 3");
                 emitter.onNext(3);
+
+                Log.d(TAG, "emit complete");
+                emitter.onComplete();
+
+                Log.d(TAG, "emit 4");
                 emitter.onNext(4);
 
             }
         });
 
+        // 创建一个下游observer
         Observer<Integer> observer = new Observer<Integer>() {
             Disposable mDisposable;
+
+            @Override
+            public void onSubscribe(Disposable d) {
+                Log.d(TAG, "onSubscribe");
+                mDisposable = d;
+                mCompositeDisposable.add(mDisposable);
+            }
+
+            @Override
+            public void onNext(Integer value) {
+                Log.d(TAG, "onNext==>" + value);
+
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                Log.d(TAG, "onError");
+
+            }
+
+            @Override
+            public void onComplete() {
+                Log.d(TAG, "onComplete");
+
+            }
+        };
+
+        // 建立关联
+        observable.subscribe(observer);
+
+    }
+
+    private void test2() {
+
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                emitter.onNext(1);
+                emitter.onNext(2);
+                emitter.onNext(3);
+                emitter.onComplete();
+            }
+        }).subscribe(new Observer<Integer>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+
+            }
+
+            @Override
+            public void onNext(Integer value) {
+
+            }
+
+            @Override
+            public void onError(Throwable e) {
+
+            }
+
+            @Override
+            public void onComplete() {
+
+            }
+        });
+
+    }
+
+    // Disposable使用
+    private void test3() {
+        // 创建一个上游observable
+        Observable<Integer> observable = Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                Log.d(TAG, "observable thread is : " + Thread.currentThread().getName());
+                Log.d(TAG, "emit 1");
+                emitter.onNext(1);
+
+                Log.d(TAG, "emit 2");
+                emitter.onNext(2);
+
+                Log.d(TAG, "emit 3");
+                emitter.onNext(3);
+
+                Log.d(TAG, "emit complete");
+                emitter.onComplete();
+
+                Log.d(TAG, "emit 4");
+                emitter.onNext(4);
+
+            }
+        });
+
+        // 创建一个下游observer
+        Observer<Integer> observer = new Observer<Integer>() {
+            Disposable mDisposable;
+            int i;
 
             @Override
             public void onSubscribe(Disposable d) {
@@ -65,8 +185,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onNext(Integer value) {
                 Log.d(TAG, "onNext==>" + value);
-                if (value == 2) {
+                i++;
+                if (i == 2) {
+                    Log.d(TAG, "disposable");
                     mDisposable.dispose();
+                    Log.d(TAG, "isDisposed : " + mDisposable.isDisposed());
                 }
 
             }
@@ -84,53 +207,183 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        Consumer<Integer> consumer = new Consumer<Integer>() {
-            @Override
-            public void accept(Integer integer) throws Exception {
-                Log.d(TAG, "observer thread is : " + Thread.currentThread().getName());
-                Log.d(TAG, "onNext==>" + integer);
-            }
-        };
-        // 1.订阅
+        // 建立关联
         observable.subscribe(observer);
 
+    }
 
-        // 2.切线程
-          /* 简单的来说, subscribeOn() 指定的是上游发送事件的线程, observeOn() 指定的是下游接收事件的线程.
-           多次指定上游的线程只有第一次指定的有效, 也就是说多次调用subscribeOn() 只有第一次的有效, 其余的会被忽略.
-           多次指定下游的线程是可以的, 也就是说每调用一次observeOn() , 下游的线程就会切换一次.
-         */
-        observable.subscribeOn(Schedulers.io())
+
+    // Consumer使用
+    private void test4() {
+        // 创建一个上游observable
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                Log.d(TAG, "observable thread is : " + Thread.currentThread().getName());
+                Log.d(TAG, "emit 1");
+                emitter.onNext(1);
+
+                Log.d(TAG, "emit 2");
+                emitter.onNext(2);
+
+                Log.d(TAG, "emit 3");
+                emitter.onNext(3);
+
+                Log.d(TAG, "emit complete");
+                emitter.onComplete();
+
+                Log.d(TAG, "emit 4");
+                emitter.onNext(4);
+
+            }
+        }).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                Log.d(TAG, "onNext: " + integer);
+
+            }
+        }, new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) throws Exception {
+                Log.d(TAG, "onError");
+
+            }
+        }, new Action() {
+            @Override
+            public void run() throws Exception {
+                Log.d(TAG, "onComplete");
+
+            }
+        });
+
+
+    }
+
+    // 线程变换
+    private void test5() {
+        // 创建一个上游observable
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                Log.d(TAG, "observable thread is : " + Thread.currentThread().getName());
+                Log.d(TAG, "emit 1");
+                emitter.onNext(1);
+
+                Log.d(TAG, "emit complete");
+                emitter.onComplete();
+
+            }
+        }).subscribeOn(Schedulers.io())
+                .doOnNext(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        Log.d(TAG, "After subscribeOn(io), current thread is: " + Thread.currentThread().getName());
+
+                    }
+                })
+                .subscribeOn(Schedulers.newThread())
+                .doOnNext(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        Log.d(TAG, "After subscribeOn(newThread), current thread is: " + Thread.currentThread().getName());
+
+                    }
+                })
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(consumer);
+                .doOnNext(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        Log.d(TAG, "After observeOn(mainThread), current thread is: " + Thread.currentThread().getName());
+                    }
+                })
+                .observeOn(Schedulers.io())
+                .doOnNext(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        Log.d(TAG, "After observeOn(io), current thread is : " + Thread.currentThread().getName());
+                    }
+                })
+                .subscribe(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        Log.d(TAG, "Observer thread is :" + Thread.currentThread().getName());
+                        Log.d(TAG, "onNext: " + integer);
+                    }
+                });
 
 
-//           3.map
-        Observable<String> mapobservable = observable.map(new Function<Integer, String>() {
+    }
+
+
+    // map变换
+    private void test6() {
+        // 创建一个上游observable
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                Log.d(TAG, "observable thread is : " + Thread.currentThread().getName());
+                Log.d(TAG, "emit 1");
+                emitter.onNext(1);
+
+                Log.d(TAG, "emit 2");
+                emitter.onNext(2);
+
+                Log.d(TAG, "emit 3");
+                emitter.onNext(3);
+
+                Log.d(TAG, "emit complete");
+                emitter.onComplete();
+
+                Log.d(TAG, "emit 4");
+                emitter.onNext(4);
+
+            }
+        }).map(new Function<Integer, String>() {
             @Override
             public String apply(Integer integer) throws Exception {
-                final List<String> list = new ArrayList<>();
-                for (int i = 0; i < 3; i++) {
-                    list.add("I am value " + integer);
-                }
-                return integer + "";
+                return integer + "--";
+            }
+        }).subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String s) throws Exception {
+                Log.d(TAG, "onNext: " + s);
+
             }
         });
 
-//           4.flatMap, contactMap  flatMap不保证顺序， contactMap保证发射顺序
-        Observable<String> flatobservable = observable.concatMap(new Function<Integer, ObservableSource<String>>() {
+
+    }
+
+    // flatmap变换
+    private void test7() {
+        // 创建一个上游observable
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                Log.d(TAG, "observable thread is : " + Thread.currentThread().getName());
+                Log.d(TAG, "emit 1");
+                emitter.onNext(1);
+
+                Log.d(TAG, "emit 2");
+                emitter.onNext(2);
+
+                Log.d(TAG, "emit 3");
+                emitter.onNext(3);
+
+                Log.d(TAG, "emit complete");
+                emitter.onComplete();
+
+            }
+        }).concatMap(new Function<Integer, ObservableSource<String>>() {
             @Override
             public ObservableSource<String> apply(Integer integer) throws Exception {
-
-                final List<String> list = new ArrayList<>();
+                List<String> list = new ArrayList<>();
                 for (int i = 0; i < 3; i++) {
                     list.add("I am value " + integer);
                 }
-                return Observable.fromIterable(list).delay(100, TimeUnit.MILLISECONDS);
+                return Observable.fromIterable(list).delay(10, TimeUnit.MILLISECONDS);
             }
-        });
-
-        flatobservable.subscribe(new Consumer<String>() {
+        }).subscribe(new Consumer<String>() {
             @Override
             public void accept(String s) throws Exception {
                 Log.d(TAG, s);
@@ -138,38 +391,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        // flatMap, 切线程（用处：两个接口顺序回调）
-        observable.subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext(new Consumer<Integer>() {
-                    @Override
-                    public void accept(Integer integer) throws Exception {
-                        Log.d(TAG, "doOnNext==>" + integer);
+    }
 
-                    }
-                })
-                .observeOn(Schedulers.io())
-                .map(new Function<Integer, String>() {
-                    @Override
-                    public String apply(Integer integer) throws Exception {
-                        return "map=>" + integer;
-                    }
-                })
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<String>() {
-                    @Override
-                    public void accept(String s) throws Exception {
-                        Log.d(TAG, "subscribe==>" + s + " thread is : " + Thread.currentThread().getName());
-                        throw new Exception();
-                    }
-                }, new Consumer<Throwable>() {
-                    @Override
-                    public void accept(Throwable throwable) throws Exception {
-                        Log.d(TAG, "throwable");
-                    }
-                });
-
-        // 5.zip (用处：有些东西需要在两个接口都回来合并处理)
+    // zip变换 (用处：有些东西需要在两个接口都回来合并处理)
+    private void test8() {
         Observable<Integer> observable1 = Observable.create(new ObservableOnSubscribe<Integer>() {
             @Override
             public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
@@ -232,8 +457,11 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+    }
 
-        // 6.FLowable
+
+    // FLowable使用
+    private void test9() {
         Flowable
                 .create(new FlowableOnSubscribe<Integer>() {
                     @Override
@@ -283,4 +511,12 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mCompositeDisposable != null) {
+            mCompositeDisposable.clear();
+        }
+    }
 }
